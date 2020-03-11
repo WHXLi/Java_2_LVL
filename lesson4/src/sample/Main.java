@@ -14,6 +14,7 @@ public class Main extends Application {
         primaryStage.setTitle("Messenger");
         primaryStage.setScene(new Scene(root, 300, 600));
         primaryStage.show();
+        primaryStage.setResizable(false);
     }
 
     public static void main(String[] args) {
