@@ -1,0 +1,24 @@
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<VBox fx:controller="sample.Controller"
+      xmlns:fx="http://javafx.com/fxml" alignment="CENTER">
+    <TextField minWidth="600" minHeight="50" alignment="CENTER" editable="false">Первый метод</TextField>
+    <HBox>
+        <TextArea fx:id="arr1FieldMtd1" minHeight="300" editable="false"/>
+        <TextArea fx:id="arr2FieldMtd1" minHeight="300" editable="false"/>
+    </HBox>
+    <HBox>
+        <TextArea fx:id="timerMtd1" minHeight="20" minWidth="600" editable="false"/>
+    </HBox>
+    <TextField minWidth="600" minHeight="50" alignment="CENTER" editable="false">Второй метод</TextField>
+    <HBox>
+        <TextArea fx:id="arr1FieldMtd2" minHeight="300" editable="false"/>
+        <TextArea fx:id="arr2FieldMtd2" minHeight="300" editable="false"/>
+    </HBox>
+    <HBox>
+        <TextArea fx:id="timerMtd2" minHeight="100" minWidth="600" editable="false"/>
+    </HBox>
+    <Button onAction="#startBtn" minWidth="600" minHeight="50">Запускаем!</Button>
+</VBox>
+
