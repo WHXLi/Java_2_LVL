@@ -77,7 +77,6 @@ public class Controller {
         for (int i = 0; i < arrCopy1.length; i++) {
             mathForm(arrCopy1, i);
         }
-        System.arraycopy(arrCopy1, 0, arr, 0, h);
     }
 
     public synchronized void halfEdit2() {
