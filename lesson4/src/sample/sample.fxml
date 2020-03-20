@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import java.net.URL?>
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/10.0.2-internal"
+            fx:controller="sample.Controller">
+    <stylesheets>
+        <URL value="@/sample/style.css"/>
+    </stylesheets>
+    <top>
+        <MenuBar>
+            <Menu text="File">
+                <MenuItem onAction="#menuCloseClick" text="Exit"/>
+            </Menu>
+        </MenuBar>
+    </top>
+    <center>
+        <AnchorPane>
+            <VBox fx:id="myMessageZone" AnchorPane.rightAnchor="0">
+
+            </VBox>
+        </AnchorPane>
+    </center>
+    <bottom>
+        <GridPane>
+            <TextField fx:id="myMessage" onAction="#enterPush" GridPane.columnIndex="0" GridPane.rowIndex="0" GridPane.hgrow="ALWAYS"
+                       minHeight="30"
+                       promptText="Сообщение"/>
+            <Button onAction="#btnPushClick" text="Отправить" GridPane.columnIndex="1"
+                    GridPane.rowIndex="0" minWidth="100" minHeight="30"/>
+        </GridPane>
+    </bottom>
+</BorderPane>
