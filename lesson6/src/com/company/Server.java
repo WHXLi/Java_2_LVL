@@ -1,44 +1,76 @@
 package com.company;
 
-import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Scanner;
 
 public class Server {
     public static void main(String[] args) {
         ServerSocket server = null;
         Socket client = null;
-        BufferedReader in;
-        PrintWriter out;
-        try {
-            server = new ServerSocket(777);
-            System.out.println("Сервер запущен, ожидание подключения");
-            client = server.accept();
-            System.out.println("Клиент подключился");
-            in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-            out = new PrintWriter(client.getOutputStream(), true);
+        DataInputStream in;
+        DataOutputStream out;
 
-            new Thread(() -> {
+        int PORT = 777;
+
+        try {
+            server = new ServerSocket(PORT);
+            System.out.println("Сервер запущен, ожидание подключения...");
+            client = server.accept();
+            System.out.println("Клиент подключен");
+
+            in = new DataInputStream(client.getInputStream());
+            out = new DataOutputStream(client.getOutputStream());
+
+            Scanner scanner = new Scanner(System.in);
+
+            //ВХОДНОЙ ПОТОК
+            Thread input = new Thread(()->{
                 try {
-                    while (true) {
-                        String message = in.readLine();
-                        if (message.equals("/end")) {
-                            System.out.println("Клиент отключился");
+                    while (true){
+                        String message = in.readUTF();
+                        if (message.equals("/end")){
+                            System.out.println("Клиент отключен");
                             break;
                         }
-                        out.println("Клиент: " + message);
+                        System.out.println("Клиент: " + message);
                     }
-                } catch (IOException e) {
+                }catch (IOException e){
                     e.printStackTrace();
                 }
-            }).start();
+            });
+
+            //ВЫХОДНОЙ ПОТОК
+            Thread output = new Thread(()->{
+                try {
+                    while (true){
+                        String message = scanner.nextLine();
+                        out.writeUTF(message);
+                    }
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+            });
+
+            input.start();
+            output.setDaemon(true);
+            output.start();
+
+            try {
+                input.join();
+                output.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
+        }finally {
             try {
+                assert client != null;
                 client.close();
             } catch (IOException e) {
                 e.printStackTrace();

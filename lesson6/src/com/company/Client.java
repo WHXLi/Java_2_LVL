@@ -1,42 +1,74 @@
 package com.company;
 
-import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Scanner;
 
 public class Client {
 
     public static void main(String[] args) {
-        Scanner scan = new Scanner(System.in);
+        Socket client = null;
+        DataInputStream in;
+        DataOutputStream out;
+
         String IP = "localhost";
         int PORT = 777;
-        BufferedReader in;
-        PrintWriter out;
-        Socket client = null;
+
+        Scanner scanner = new Scanner(System.in);
+
         try {
-            client = new Socket(IP, PORT);
-            in = new BufferedReader(new InputStreamReader(client.getInputStream()));
-            out = new PrintWriter(client.getOutputStream(), true);
-            new Thread(() -> {
+            client = new Socket(IP,PORT);
+
+            in = new DataInputStream(client.getInputStream());
+            out = new DataOutputStream(client.getOutputStream());
+
+            //ВХОДНОЙ ПОТОК
+            Thread input = new Thread(()->{
                 try {
-                    while (true) {
-                        String message = scan.nextLine();
-                        out.println(message);
-                        String readMessage = in.readLine();
-                        System.out.println(readMessage);
+                    while (true){
+                        String messageFromServer = in.readUTF();
+                        if (messageFromServer.equals("/end")){
+                            System.out.println("Клиент отключен");
+                            break;
+                        }
+                        System.out.println("Ответ сервера: " + messageFromServer);
                     }
-                } catch (IOException e) {
-                    System.err.println("�訡�� �� ����祭�� ᮮ�饭��.");
+                }catch (IOException e){
                     e.printStackTrace();
                 }
-            }).start();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
+            });
+
+            //ВЫХОДНОЙ ПОТОК
+            Thread output = new Thread(()->{
+                try {
+                    while (true){
+                        String messageFromServer = scanner.nextLine();
+                        out.writeUTF(messageFromServer);
+                    }
+                }catch (IOException e){
+                    e.printStackTrace();
+                }
+            });
+
+            input.start();
+            output.setDaemon(true);
+            output.start();
+
             try {
+                input.join();
+                output.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        finally {
+            try {
+                assert client != null;
                 client.close();
             } catch (IOException e) {
                 e.printStackTrace();
