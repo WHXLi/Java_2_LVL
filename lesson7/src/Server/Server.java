@@ -5,8 +5,6 @@ import Client.ClientHandler;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Vector;
 
 public class Server {
@@ -67,29 +65,63 @@ public class Server {
     }
 
     //МЕТОД ДЛЯ МАССОВОЙ ОТПРАВКИ СООБЩЕНИЙ
-    public void broadcastMessage(String message, String nickname) {
+    public void broadcastMessage(String nickname ,String message ) {
         for (ClientHandler clientHandler : clients) {
             clientHandler.sendMessage(nickname + ": " + message);
         }
     }
 
-    //МЕТОД ДЛЯ ПРИВАТНОЙ ОТПРАВКИ СООБЩЕНИЙ (НЕ РАБОТАЕТ)
-    public void privateMessage(String message, String nickname){
-        for (ClientHandler clientHandler: clients) {
-            //ИЩУ СРЕДИ КЛИЕНТОВ ТОГО, КОМУ ОТПРАВЛЯЮТ СООБЩЕНИЕ
-            if (clientHandler.getNickname().equals(clientHandler.getPrivateName())){
-                clientHandler.sendMessage(nickname + ": " + message);
+    //МЕТОД ДЛЯ ПРИВАТНОЙ ОТПРАВКИ СООБЩЕНИЙ
+    public void privateMessage(ClientHandler sender, String receiver, String message){
+        //ВЫСТРАИВАЕМ ФОРМАТ ВЫВОДИМОГО СООБЩЕНИЯ
+        String newMessage = String.format("от [%s] : %s", sender.getNickname(),message);
+
+        if (sender.getNickname().equals(receiver)){
+            sender.sendMessage(message);
+            return;
+        }
+
+        for (ClientHandler clientHandler : clients) {
+            if (clientHandler.getNickname().equals(receiver)){
+                clientHandler.sendMessage(newMessage);
+                sender.sendMessage(newMessage);
+                return;
             }
+        }
+
+        sender.sendMessage("Получатель не найден: " + receiver);
+    }
+
+    public void clientListMessage(){
+        StringBuilder stringBuilder = new StringBuilder("/clientlist ");
+        for (ClientHandler clientHandler: clients) {
+            stringBuilder.append(clientHandler.getNickname() + " ");
+        }
+        String message = stringBuilder.toString();
+        for (ClientHandler clientHandler : clients){
+            clientHandler.sendMessage(message);
         }
     }
 
     //МЕТОД ДОБАВЛЕНИЯ КЛИЕНТА В КЛАСС ОТВЕЧАЮЩИЙ ЗА РАБОТУ С ПОДКЛЮЧЕННЫМ КЛИЕНТОМ
     public void subscribeAdd(ClientHandler clientHandler) {
         clients.add(clientHandler);
+        clientListMessage();
     }
 
     //МЕТОД УДАЛЕНИЯ КЛИЕНТА В КЛАСС ОТВЕЧАЮЩИЙ ЗА РАБОТУ С ПОДКЛЮЧЕННЫМ КЛИЕНТОМ
     public void subscribeDel(ClientHandler clientHandler) {
         clients.remove(clientHandler);
+        clientListMessage();
+    }
+
+    //ПРОВЕРЯЕМ ЗАШЕЛ ЛИ ПОЛЬЗОВАТЕЛЬ С КОНКРЕТНЫМ ЛОГИНОМ
+    public boolean isLoginAuthorized(String login){
+        for (ClientHandler clientHandler: clients) {
+            if (clientHandler.getLogin().equals(login)){
+                return true;
+            }
+        }
+        return false;
     }
 }

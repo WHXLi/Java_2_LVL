@@ -6,6 +6,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 public class ClientHandler {
 
@@ -19,15 +20,14 @@ public class ClientHandler {
 
     //ПЕРЕМЕННЫЕ ДЛЯ ХРАНЕНИЯ НИКНЕЙМА И ЛОГИНА
     private String nickname;
-    private String privateName;
     private String login;
 
     public String getNickname() {
         return nickname;
     }
 
-    public String getPrivateName() {
-        return privateName;
+    public String getLogin() {
+        return login;
     }
 
     //КОНСТРУКТОР
@@ -41,53 +41,87 @@ public class ClientHandler {
             //ПОТОК ОТВЕЧАЮЩИЙ ЗА ОБМЕН ДАННЫМИ МЕЖДУ СЕРВЕРОМ И КЛИЕНТОМ
             new Thread(() -> {
                 try {
+                    //ТАЙМАУТ 120 СЕКУНД НА ПОПЫТКУ ВХОДА
+                    client.setSoTimeout(120000);
                     //ЦИКЛ АВТОРИЗАЦИИ
-                    while (true){
+                    while (true) {
                         //ПОЛУЧАЕМ СООБЩЕНИЕ ОТ СЕРВЕРА
                         String authorization = in.readUTF();
 
+                        //ВОЗМОЖНОСТЬ ВЫХОДА ДЛЯ КЛИЕНТА
+                        if (authorization.equals("/end")) {
+                            throw new RuntimeException("Клиент отключен");
+                        }
+
+                        //РЕГИСТРАЦИЯ
+                        if (authorization.startsWith("/reg ")) {
+                            String[] token = authorization.split(" ");
+                            boolean apply = server.getAuthorization().registration(token[1], token[2], token[3]);
+                            if (apply) {
+                                sendMessage("\n" + "Регистрация прошла успешно!");
+                            } else sendMessage("Логин или Никнейм уже занят");
+                        }
+
                         //СЧИТЫВАЕМ ИНФОРМАЦИЮ ИЗ ПОПЫТКИ ВХОДА
-                        if (authorization.startsWith("/authorization ")){
+                        if (authorization.startsWith("/authorization ")) {
                             //РАЗБИВАЕМ СТРОКУ ЧЕРЕЗ ПРОБЕЛ
                             String[] token = authorization.split(" ");
                             //ПОЛУЧАЕМ НИКНЕЙМ ЧЕРЕЗ ЛОГИН И ПАРОЛЬ ПОЛЬЗОВАТЕЛЯ
-                            String newNickname = server.getAuthorization().getNameByLoginAndPassword(token[1],token[2]);
+                            String newNickname = server.getAuthorization().getNameByLoginAndPassword(token[1], token[2]);
+
+                            login = token[1];
 
                             //В СЛУЧАЕ УСПЕШНОЙ АВТОРИЗАЦИИ ПРИСУЖДАЕМ ПОЛЬЗОВАТЕЛЮ НИКНЕЙМ
-                            if (newNickname != null){
-                                sendMessage("/authorizationOK " + newNickname);
-                                nickname = newNickname;
-                                login = token[1];
-                                server.subscribeAdd(this);
-                                System.out.println("Клиент " + nickname + " авторизовался");
-                                break;
-                            }else {
-                                sendMessage("Неверный логин / пароль");
+                            if (newNickname != null) {
+                                if (!server.isLoginAuthorized(login)) {
+                                    sendMessage("/authorizationOK " + newNickname);
+                                    nickname = newNickname;
+                                    server.subscribeAdd(this);
+                                    System.out.println("Клиент " + nickname + " авторизовался");
+                                    break;
+                                } else {
+                                    sendMessage("Пользователь в сети");
+                                    System.out.println("Ошибка входа");
+                                }
+                            } else {
+                                sendMessage("Неверный логин / пароль" + "\n");
+                                System.out.println("Ошибка входа");
                             }
                         }
                     }
 
                     //ЦИКЛ РАБОТЫ
+                    client.setSoTimeout(0);
                     while (true) {
                         //ПОЛУЧАЕМ СООБЩЕНИЕ ОТ СЕРВЕРА
                         String message = in.readUTF();
 
-                        //ВОЗМОЖНОСТЬ ВЫХОДА ДЛЯ КЛИЕНТА
-                        if (message.equals("/end")) {
-                            out.writeUTF("/end");
-                            break;
-                        }
-
-                        //ВОЗМОЖНОСТЬ ОТПРАВКИ ПРИВАТНОГО СООБЩЕНИЯ (НЕ РАБОТАЕТ)
-                        if (message.startsWith("/w ")){
-                            String[] token = message.split(" ");
-                            privateName = token[1];
-                            server.privateMessage(message,nickname);
+                        //ОБРАБОТКА СИСТЕМНЫХ СООБЩЕНИЙ
+                        if (message.startsWith("/")) {
+                            //ВОЗМОЖНОСТЬ ВЫХОДА ДЛЯ КЛИЕНТА
+                            if (message.equals("/end")) {
+                                out.writeUTF("/end");
+                                break;
+                            }
+                            //ВОЗМОЖНОСТЬ ОТПРАВКИ ПРИВАТНОГО СООБЩЕНИЯ (НЕ РАБОТАЕТ)
+                            if (message.startsWith("/w ")) {
+                                //ОГРАНИЧИВАЕМ СПЛИТ ДО 3 ПРОБЕЛОВ
+                                String[] token = message.split(" ", 3);
+                                //ФИКСИМ ВОЗМОЖНУЮ ОШИБКУ
+                                if (token.length == 3) {
+                                    server.privateMessage(this, token[1], token[2]);
+                                }
+                            }
                         } else {
                             //ВЫВОДИМ СООБЩЕНИЕ ПОЛЬЗОВАТЕЛЯ В ЧАТ
-                            server.broadcastMessage(message, nickname);
+                            server.broadcastMessage(nickname, message);
                         }
                     }
+                }catch (SocketTimeoutException e){
+                    System.out.println("Клиент бездействовал продолжительное время, отключение");
+                    sendMessage("/end");
+                } catch (RuntimeException e) {
+                    System.out.println(e.getMessage());
                 } catch (IOException e) {
                     e.printStackTrace();
                 } finally {
