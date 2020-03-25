@@ -24,13 +24,6 @@ public class SimpleAuthorization implements Authorization {
 
     public SimpleAuthorization() {
         users = new ArrayList<>();
-
-        //ПОЛЬЗОВАТЕЛЬСКИЕ УЧЁТНЫЕ ЗАПИСИ
-        for (int i = 1; i <= 10; i++) {
-            users.add(new UserData("login" + i, "password" + i, "Пользователь_" + i ));
-
-        }
-
         //АДМИНИСТРАТОРСКАЯ УЧЁТНАЯ ЗАПИСЬ
         users.add(new UserData("admin", "admin", "admin"));
     }
@@ -44,5 +37,17 @@ public class SimpleAuthorization implements Authorization {
             }
         }
         return null;
+    }
+
+    @Override
+    public boolean registration(String login, String password, String nickname) {
+        for (UserData user: users) {
+            //ЕСЛИ С ТАКИМ ЛОГИНОМ КТО-ТО СУЩЕСТВУЕТ, ТО ОТМЕНА
+            if (user.login.equals(login) || user.nickname.equals(nickname)){
+                return false;
+            }
+        }
+        users.add(new UserData(login,password,nickname));
+        return true;
     }
 }
